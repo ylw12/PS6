@@ -10,11 +10,18 @@ rm(list=ls())
 library(SparseGrid)
 ?SparseGrid
 
-# ---------- Change the function to allow more dimensions ----------
 
-sg.int <- function(g, ..., lower, upper){
-  # require the package
+# ---------- Change the function to allow more dimensions and parallel processing ----------
+
+sg.int <- function(g, ..., lower, upper, parallel=FALSE, cores=4){
+  # require the packages
   require("SparseGrid")
+  
+  # if using parallel, register the number of cores
+  require("doMC")
+  if(parallel){
+    registerDoMC(cores=cores)
+  }
   
   # check if the lengths of lower and upper are the same
   if (length(lower) != length(upper)) stop("lower and upper must be of the sme length")
@@ -52,6 +59,42 @@ sg.int <- function(g, ..., lower, upper){
 }
 
 
-# ---------- Test the function ----------
+# ---------- Write tests for the function using Testthat ----------
 
-sg.int(g=dnorm, lower = c(-1.5, 0.5, 1), upper = c(1, 3.2, 4))
+library(testthat)
+
+# Evaluate that sg.int.hi.dim should produce a similar result to adaptIntegrate
+test_that("The answer is close to the real value.", 
+          expect_equal(as.vector(sg.int(g = dnorm, lower = c(-1.5, 0.5, 1), upper = c(1, 3.2, 4))),
+                       adaptIntegrate(dnorm, lowerLimit = c(-1.5, 0.5, 1), upperLimit = c(1, 3.2, 4))$integral,
+                       tolerance = 1e-3))
+# This test currently does not work. "adaptIntegrate" returns a sigle number, while sg.int returns three.
+
+
+# ---------- Compere the speed with and without parallel ----------
+
+library(microbenchmark)
+
+# compare the speed in 2 dimensions
+microbenchmark(
+  "Noparallel_2dim" = sg.int(g = dnorm, lower = c(-2, -2), upper = c(1, 1)),
+  "Parallel_2dim." = sg.int(g = dnorm, lower = c(-2, -2), upper = c(1, 1), parallel = TRUE),
+  times = 20
+)
+# No parallel is faster than parallel by a small margin.
+
+# compare the speed in 3 dimensions
+microbenchmark(
+  "Noparallel_2dim" = sg.int(g = dnorm, lower = c(-2, -2, -2), upper = c(1, 1, 1)),
+  "Parallel_2dim." = sg.int(g = dnorm, lower = c(-2, -2, -2), upper = c(1, 1, 1), parallel = TRUE),
+  times = 20
+)
+# Parallel is faster than no parallel by a small margin.
+
+# compare the speed in 4 dimensions
+microbenchmark(
+  "Noparallel_2dim" = sg.int(g = dnorm, lower = c(-2, -2, -2, -2), upper = c(1, 1, 1, 1)),
+  "Parallel_2dim." = sg.int(g = dnorm, lower = c(-2, -2, -2, -2), upper = c(1, 1, 1, 1), parallel = TRUE),
+  times = 20
+)
+# No parallel is faster than parallel by a small margin.
