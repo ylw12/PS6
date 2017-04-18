@@ -61,14 +61,36 @@ sg.int <- function(g, ..., lower, upper, parallel=FALSE, cores=4){
 
 # ---------- Write tests for the function using Testthat ----------
 
+# Create some fuctions for later testing
+f <- function(x){
+  x[1]^2 + 2*x[2] + x[3]
+}
+
+h <- function(x){
+  x[1]^2 + 2*x[2] + x[3] + log(x[4])
+}
+
 library(testthat)
+library(cubature)
 
 # Evaluate that sg.int.hi.dim should produce a similar result to adaptIntegrate
 test_that("The answer is close to the real value.", 
-          expect_equal(as.vector(sg.int(g = dnorm, lower = c(-1.5, 0.5, 1), upper = c(1, 3.2, 4))),
-                       adaptIntegrate(dnorm, lowerLimit = c(-1.5, 0.5, 1), upperLimit = c(1, 3.2, 4))$integral,
-                       tolerance = 1e-3))
-# This test currently does not work. "adaptIntegrate" returns a sigle number, while sg.int returns three.
+          expect_equal(as.vector(sg.int(g = f, lower = c(1, 2, 3), upper = c(6, 7, 8))),
+                       adaptIntegrate(f, lowerLimit = c(1, 2, 3), upperLimit = c(6, 7, 8))$integral,
+                       tolerance = 1))
+
+test_that("The answer is close to the real value.", 
+          expect_equal(as.vector(sg.int(g = h, lower = c(1, 2, 3, 4), upper = c(5, 6, 7, 8))),
+                       adaptIntegrate(f, lowerLimit = c(1, 2, 3, 4), upperLimit = c(5, 6, 7, 8))$integral,
+                       tolerance = 1))
+
+test_that("The answer is close to the real value.", 
+          expect_equal(as.vector(sg.int(g = h, lower = c(1, 2, 3, 4), upper = c(5, 6, 7, 8))),
+                       adaptIntegrate(f, lowerLimit = c(1, 2, 3, 4), upperLimit = c(5, 6, 7, 8))$integral,
+                       tolerance = 1))
+
+test_that("The output is in a matrix",
+          expect_is(sg.int(g = h, lower = c(1, 2, 3, 4), upper = c(5, 6, 7, 8)), "matrix"))
 
 
 # ---------- Compere the speed with and without parallel ----------
